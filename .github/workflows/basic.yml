@@ -1,4 +1,4 @@
-name: CI/CD Deploy to EC2
+name: cicd-test01
 
 on:
   push:
@@ -6,41 +6,11 @@ on:
       - main
 
 jobs:
-  ci:
+  echo-test:
     runs-on: ubuntu-latest
     steps:
-      - name: 코드 가져오기
+      - name: download repo into runner
         uses: actions/checkout@v4
-
-      - name: Node.js 설치
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: 패키지 설치
-        run: npm ci
-
-      - name: 테스트 실행
-        run: npm test
-
-      - name: 빌드 실행
-        run: npm run build
-
-  cd:
-    runs-on: ubuntu-latest
-    needs: ci
-
-    steps:
-      - name: EC2 배포
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_KEY }}
-          script: |
-            cd /home/ec2-user/app
-            git pull origin main
-            npm ci
-            npm run build
-            pm2 restart nest-app
+      - name: echo-test
+        run: echo "안녕하시긔"
+      
