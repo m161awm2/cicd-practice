@@ -1,4 +1,4 @@
-name: cicd-test01
+name: cicd-test
 
 on:
   push:
@@ -6,11 +6,15 @@ on:
       - main
 
 jobs:
-  echo-test:
+  pull-codes:
     runs-on: ubuntu-latest
     steps:
-      - name: download repo into runner
+      - name: download codes
         uses: actions/checkout@v4
-      - name: echo-test
-        run: echo "안녕하시긔"
-      
+      - name: install nodejs
+        uses: actions/setup-node@v4
+      - name: mkdir-test
+        run: |
+          mkdir testDir
+          touch testDir/helloworld.py
+
