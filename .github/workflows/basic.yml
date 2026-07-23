@@ -1,21 +1,27 @@
+name: Kind Kubernetes Test
+
 on:
   pull_request:
     branches:
       - main
 
 jobs:
-  ci:
+  kind-ci:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: checkout repo
         uses: actions/checkout@v4
         with:
           repository: m161awm2/cicd-practice
-      - name: set up node-js/nestjs
-        uses: actions/setup-node@v3
+
+      - name: kind k8s cluster setting
+        uses: helm/kind-action@v1
         with:
-          node-version: 20
-      - name: run code
+          cluster-name: ci-cluster
+      
+      - name: kind apply manifest
         run: |
-          npm ci
-          npm start
+          kubectl apply -f k8s/
+          kubectl get nodes
+          kubectl get pods wide -o
+          
