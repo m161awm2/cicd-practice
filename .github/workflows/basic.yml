@@ -23,5 +23,4 @@ jobs:
         run: |
           kubectl apply -f k8s/
           kubectl get nodes
-          kubectl get pods wide -o
-          
+          kubectl get pods -o wide
