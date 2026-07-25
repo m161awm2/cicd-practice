@@ -1,4 +1,4 @@
-name: Kind Kubernetes Test
+name: docker image build & pod deploy
 
 on:
   pull_request:
@@ -6,21 +6,21 @@ on:
       - main
 
 jobs:
-  kind-ci:
+  ci:
     runs-on: ubuntu-latest
     steps:
-      - name: checkout repo
-        uses: actions/checkout@v4
-        with:
-          repository: m161awm2/cicd-practice
-
-      - name: kind k8s cluster setting
-        uses: helm/kind-action@v1
-        with:
-          cluster-name: ci-cluster
+      - name: 가져오기
+        uses: actions/checkout@v3
       
-      - name: kind apply manifest
-        run: |
-          kubectl apply -f k8s/
-          kubectl get nodes
-          kubectl get pods -o wide
+      - name: 노드 js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      
+      - name: kind
+        uses: helm/kind-action@v1
+      
+      - name: docker image 빌드
+        run : docker build -t my-app .
+      
+      
