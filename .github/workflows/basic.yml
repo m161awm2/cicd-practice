@@ -11,6 +11,9 @@ jobs:
     steps:
       - name: 가져오기
         uses: actions/checkout@v3
+        with:
+          repository:
+            m161awm2/cicd-practice
       
       - name: 노드 js
         uses: actions/setup-node@v4
