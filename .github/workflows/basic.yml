@@ -1,26 +1,120 @@
-name: Kind Kubernetes Test
+name: CI/CD to EKS
 
 on:
   pull_request:
     branches:
       - main
 
-jobs:
-  kind-ci:
-    runs-on: ubuntu-latest
-    steps:
-      - name: checkout repo
-        uses: actions/checkout@v4
-        with:
-          repository: m161awm2/cicd-practice
+permissions:
+  contents: read
+  id-token: write
 
-      - name: kind k8s cluster setting
+env:
+  AWS_REGION: ap-southeast-2
+  ECR_REPOSITORY: my-app
+  EKS_CLUSTER: ferocious-metal-outfit
+  IMAGE_NAME: my-app
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. GitHub 코드 가져오기
+      - name: Checkout
+        uses: actions/checkout@v4
+
+
+      # 2. Docker 이미지 만들기
+      - name: Build Docker image
+        run: |
+          docker build -t $IMAGE_NAME:$GITHUB_SHA .
+
+
+      # 3. kind 클러스터 만들기
+      - name: Create kind cluster
         uses: helm/kind-action@v1
         with:
-          cluster-name: ci-cluster
-      
-      - name: kind apply manifest
+          cluster_name: ci
+
+
+      # 4. 만든 이미지를 kind에 넣기
+      - name: Load image into kind
         run: |
-          kubectl apply -f k8s/
-          kubectl get nodes
-          kubectl get pods -o wide
+          kind load docker-image \
+            $IMAGE_NAME:$GITHUB_SHA \
+            --name ci
+
+
+      # 5. kind에 배포
+      - name: Deploy to kind
+        run: |
+          sed "s|IMAGE_PLACEHOLDER|$IMAGE_NAME:$GITHUB_SHA|g" \
+            k8s/deployment.yaml \
+            | kubectl apply -f -
+
+          kubectl apply -f k8s/service.yaml
+
+
+      # 6. kind 배포 성공 확인
+      - name: Test kind deployment
+        run: |
+          kubectl rollout status deployment/my-app --timeout=120s
+          kubectl get pods
+
+
+      # 7. AWS 인증
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+
+      # 8. ECR 로그인
+      - name: Login to ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+
+      # 9. ECR에 이미지 push
+      - name: Push image to ECR
+        env:
+          ECR_REGISTRY: ${{ steps.ecr.outputs.registry }}
+
+        run: |
+          docker tag \
+            $IMAGE_NAME:$GITHUB_SHA \
+            $ECR_REGISTRY/$ECR_REPOSITORY:$GITHUB_SHA
+
+          docker push \
+            $ECR_REGISTRY/$ECR_REPOSITORY:$GITHUB_SHA
+
+
+      # 10. kubectl을 EKS에 연결
+      - name: Connect to EKS
+        run: |
+          aws eks update-kubeconfig \
+            --region $AWS_REGION \
+            --name $EKS_CLUSTER
+
+
+      # 11. EKS에 배포
+      - name: Deploy to EKS
+        env:
+          ECR_REGISTRY: ${{ steps.ecr.outputs.registry }}
+
+        run: |
+          sed "s|IMAGE_PLACEHOLDER|$ECR_REGISTRY/$ECR_REPOSITORY:$GITHUB_SHA|g" \
+            k8s/deployment.yaml \
+            | kubectl apply -f -
+
+          kubectl apply -f k8s/service.yaml
+
+
+      # 12. EKS 배포 성공 확인
+      - name: Check EKS deployment
+        run: |
+          kubectl rollout status deployment/my-app --timeout=180s
+          kubectl get pods
+          kubectl get svc

@@ -1,22 +1,31 @@
 apiVersion: apps/v1
 kind: Deployment
+
 metadata:
+  name: my-app
   labels:
-    app: my-nginx
-  name: my-nginx
+    app: my-app
+
 spec:
   replicas: 3
+
   selector:
     matchLabels:
-      app: my-nginx
-  strategy: {}
+      app: my-app
+
   template:
     metadata:
       labels:
-        app: my-nginx
+        app: my-app
+
     spec:
       containers:
-      - image: nginx
-        name: nginx
-        resources: {}
-status: {}
+        - name: my-app
+
+          # GitHub Actions가 여기를 실제 이미지로 바꿈
+          image: IMAGE_PLACEHOLDER
+
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - containerPort: 3000
