@@ -22,7 +22,7 @@ spec:
       containers:
         - name: my-app
 
-          # GitHub Actions가 여기를 실제 이미지로 바꿈
+          
           image: IMAGE_PLACEHOLDER
 
           imagePullPolicy: IfNotPresent
