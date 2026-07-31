@@ -1,0 +1,30 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ECRLogin",
+      "Effect": "Allow",
+      "Action": "ecr:GetAuthorizationToken",
+      "Resource": "*"
+    },
+    {
+      "Sid": "PushApplicationImage",
+      "Effect": "Allow",
+      "Action": [
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:CompleteLayerUpload",
+        "ecr:GetDownloadUrlForLayer",
+        "ecr:InitiateLayerUpload",
+        "ecr:PutImage",
+        "ecr:UploadLayerPart"
+      ],
+      "Resource": "arn:aws:ecr:ap-southeast-2:608420805531:repository/nestjs-app"
+    },
+    {
+      "Sid": "ReadClusterConnection",
+      "Effect": "Allow",
+      "Action": "eks:DescribeCluster",
+      "Resource": "arn:aws:eks:ap-southeast-2:608420805531:cluster/my-cluster"
+    }
+  ]
+}

@@ -4,6 +4,9 @@ on:
   pull_request:
     branches:
       - main
+  push:
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -11,12 +14,12 @@ permissions:
 
 env:
   AWS_REGION: ap-southeast-2
-  ECR_REPOSITORY: my-app
-  EKS_CLUSTER: ferocious-metal-outfit
-  IMAGE_NAME: my-app
+  ECR_REPOSITORY: nestjs-app
+  EKS_CLUSTER: my-cluster
+  IMAGE_NAME: cicd-practice
 
 jobs:
-  deploy:
+  kind-test:
     runs-on: ubuntu-latest
 
     steps:
@@ -56,11 +59,34 @@ jobs:
           kubectl apply -f k8s/service.yaml
 
 
-      # 6. kind 배포 성공 확인
+      # 6. kind 배포 및 HTTP 응답 확인
       - name: Test kind deployment
         run: |
           kubectl rollout status deployment/my-app --timeout=120s
           kubectl get pods
+
+          kubectl port-forward service/my-svc 8080:80 &
+          PORT_FORWARD_PID=$!
+          trap 'kill $PORT_FORWARD_PID' EXIT
+          for attempt in {1..30}; do
+            if curl --noproxy '*' --fail --silent http://127.0.0.1:8080/; then
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: kind-test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t $IMAGE_NAME:$GITHUB_SHA .
 
 
       # 7. AWS 인증

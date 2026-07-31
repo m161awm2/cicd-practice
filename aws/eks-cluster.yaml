@@ -1,0 +1,35 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: my-cluster
+  region: ap-southeast-2
+
+vpc:
+  id: vpc-05c51aed386dd4855
+  subnets:
+    public:
+      ap-southeast-2a:
+        id: subnet-065103cba086c4c1b
+      ap-southeast-2b:
+        id: subnet-05fbc13df047ebe80
+      ap-southeast-2c:
+        id: subnet-08840063074cfa265
+  clusterEndpoints:
+    publicAccess: true
+    privateAccess: false
+
+managedNodeGroups:
+  - name: practice-nodes
+    instanceType: t3.small
+    amiFamily: AmazonLinux2023
+    desiredCapacity: 1
+    minSize: 1
+    maxSize: 1
+    volumeSize: 20
+    privateNetworking: false
+    labels:
+      workload: practice
+    tags:
+      Project: cicd-practice
+      Environment: practice
