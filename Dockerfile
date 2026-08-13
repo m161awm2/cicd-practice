@@ -1,23 +1,21 @@
-FROM node:22-alpine AS build
+FROM golang:1.26.5-alpine AS build
 
-WORKDIR /app
+WORKDIR /src
 
-COPY package*.json ./
-RUN npm ci
+COPY go.mod go.sum ./
+RUN go mod download
 
 COPY . .
-RUN npm run build
+RUN go test ./... && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /app
 
 
-FROM node:22-alpine
+FROM alpine:3.23
 
-WORKDIR /app
+RUN addgroup -S app && adduser -S app -G app
+COPY --from=build /app /usr/local/bin/app
 
-COPY package*.json ./
-RUN npm ci --omit=dev
-
-COPY --from=build /app/dist ./dist
-
+USER app
+ENV GIN_MODE=release
 EXPOSE 3000
 
-CMD ["node", "dist/main"]
+CMD ["/usr/local/bin/app"]

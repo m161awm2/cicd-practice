@@ -1,7 +1,5 @@
-node_modules
-dist
-coverage
 .git
 .github
 .DS_Store
-npm-debug.log
+*.log
+coverage

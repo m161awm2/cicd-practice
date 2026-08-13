@@ -18,7 +18,7 @@
         "ecr:PutImage",
         "ecr:UploadLayerPart"
       ],
-      "Resource": "arn:aws:ecr:ap-southeast-2:608420805531:repository/nestjs-app"
+      "Resource": "arn:aws:ecr:ap-southeast-2:608420805531:repository/gin-app"
     },
     {
       "Sid": "ReadClusterConnection",
