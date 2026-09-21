@@ -1,22 +1,47 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  labels:
-    app: my-nginx
-  name: my-nginx
+  name: cicd-practice
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: my-nginx
-  strategy: {}
+      app: cicd-practice
   template:
     metadata:
       labels:
-        app: my-nginx
+        app: cicd-practice
     spec:
       containers:
-      - image: nginx
-        name: nginx
-        resources: {}
-status: {}
+        - name: app
+          image: cicd-practice:ci
+          imagePullPolicy: Never
+          ports:
+            - name: http
+              containerPort: 3000
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 500m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cicd-practice
+spec:
+  selector:
+    app: cicd-practice
+  ports:
+    - port: 3000
+      targetPort: http
