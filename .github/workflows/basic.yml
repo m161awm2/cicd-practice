@@ -1,26 +1,51 @@
-name: Kind Kubernetes Test
+name: Gin and Kind Kubernetes Test
 
 on:
   pull_request:
-    branches:
-      - main
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
 
 jobs:
   kind-ci:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - name: checkout repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
-          repository: m161awm2/cicd-practice
-
-      - name: kind k8s cluster setting
+          go-version-file: go.mod
+          cache: true
+      - name: Check format, test, vet, and build
+        run: |
+          test -z "$(gofmt -l .)"
+          go test -race -cover ./...
+          go vet ./...
+          go build -o bin/server .
+      - name: Build application image
+        run: docker build -t cicd-practice:ci .
+      - name: Create Kind cluster
         uses: helm/kind-action@v1
         with:
           cluster-name: ci-cluster
-      
-      - name: kind apply manifest
+      - name: Deploy application
         run: |
+          kind load docker-image cicd-practice:ci --name ci-cluster
           kubectl apply -f k8s/
-          kubectl get nodes
+          kubectl rollout status deployment/cicd-practice --timeout=120s
+      - name: Verify application response
+        run: |
+          kubectl port-forward service/cicd-practice 3000:3000 > /tmp/port-forward.log 2>&1 &
+          forward_pid=$!
+          trap 'kill "$forward_pid" 2>/dev/null || true' EXIT
+          curl --fail --retry 15 --retry-connrefused --retry-delay 1 http://localhost:3000/healthz
+          test "$(curl --fail --silent http://localhost:3000/)" = 'Hello World!'
+      - name: Cluster diagnostics
+        if: failure()
+        run: |
           kubectl get pods -o wide
+          kubectl describe pods -l app=cicd-practice
+          kubectl logs -l app=cicd-practice --all-containers --tail=100
